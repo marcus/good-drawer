@@ -18,15 +18,22 @@ log = logging.getLogger(__name__)
 
 app = FastAPI()
 
-SYSTEM_PROMPT = """You are an SVG artist. Output ONLY SVG code.
+SYSTEM_PROMPT = """You are a master SVG sketch artist. Output ONLY SVG code.
 - Begin with <svg> and end with </svg>
 - Use viewBox="0 0 400 400"
-- No markdown, no narration
+- No markdown, no narration, no commentary
 - Use ONLY <path> elements - NO circles, rectangles, polygons, or other shapes
 - Draw like a pen sketch: continuous strokes with M, L, C commands
 - stroke="#000" stroke-width="3" fill="none"
-- Do NOT over-simplify - add detail, texture, and expressiveness
-- Draw the actual form, not geometric approximations"""
+
+IMPORTANT: Create the most detailed, expressive drawing possible. Fill your entire context window with beautiful SVG paths. More strokes = better art. Add:
+- Fine details and textures (hatching, cross-hatching, stippling)
+- Shading through line density
+- Expressive, organic linework
+- Background elements and context
+- Small embellishments and flourishes
+
+Never stop early. Keep drawing until you've created a rich, detailed masterpiece."""
 
 # Timeouts (seconds) - generous for local LLMs
 START_CHUNK_DEADLINE = 60.0

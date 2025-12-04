@@ -13,6 +13,7 @@
     --placeholder: #999;
     --error: #d32f2f;
     --pulse: #2196f3;
+    --padding: 3rem;
 }
 
 html, body {
@@ -25,27 +26,23 @@ html, body {
 .container {
     display: flex;
     flex-direction: column;
-    height: 100%;
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 1rem;
+    align-items: center;
+    justify-content: center;
+    min-height: 100%;
+    padding: var(--padding);
+    gap: 1.5rem;
 }
 
 .canvas-wrapper {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 0;
-    padding: 1rem;
     position: relative;
+    width: min(calc(100vw - var(--padding) * 2), calc(100vh - var(--padding) * 2 - 6rem));
+    max-width: min(80vh, 800px);
+    aspect-ratio: 1;
 }
 
 #canvas {
     width: 100%;
-    max-width: 500px;
-    max-height: 100%;
-    aspect-ratio: 1;
+    height: 100%;
     background: var(--canvas-bg);
     border-radius: 12px;
     box-shadow: 0 4px 20px var(--shadow);
@@ -53,10 +50,10 @@ html, body {
 
 #doodleOverlay {
     position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
-    max-width: 500px;
-    max-height: 100%;
-    aspect-ratio: 1;
+    height: 100%;
     pointer-events: none;
 }
 
@@ -74,7 +71,8 @@ html, body {
 }
 
 .input-wrapper {
-    padding: 1rem 0;
+    width: min(calc(100vw - var(--padding) * 2), calc(100vh - var(--padding) * 2 - 6rem));
+    max-width: min(80vh, 800px);
 }
 
 .input-container {
@@ -138,16 +136,15 @@ html, body {
 }
 
 @media (max-width: 600px) {
-    .container {
-        padding: 0.5rem;
+    :root {
+        --padding: 1.5rem;
     }
 
-    .canvas-wrapper {
-        padding: 0.5rem;
+    .container {
+        gap: 1rem;
     }
 
     #canvas {
-        max-width: 100%;
         border-radius: 8px;
     }
 

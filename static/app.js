@@ -45,7 +45,28 @@ class DrawingApp {
         this.input.addEventListener('keydown', (e) => this.onKeydown(e));
         this.clearBtn.addEventListener('click', () => this.clearInput());
 
+        this.resizeCanvas();
+        window.addEventListener('resize', () => this.resizeCanvas());
+
         this.connect();
+    }
+
+    resizeCanvas() {
+        const rect = this.canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        const size = Math.round(rect.width * dpr);
+
+        if (this.canvas.width !== size || this.canvas.height !== size) {
+            this.canvas.width = size;
+            this.canvas.height = size;
+            // Re-apply canvas context settings after resize
+            this.drawer.ctx.lineCap = 'round';
+            this.drawer.ctx.lineJoin = 'round';
+            // Scale context: viewBox (400x400) → CSS size → pixel size
+            // This lets canvas-drawer work in viewBox coordinates
+            const scale = (rect.width / 400) * dpr;
+            this.drawer.ctx.setTransform(scale, 0, 0, scale, 0, 0);
+        }
     }
 
     logWarning(warning) {

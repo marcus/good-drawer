@@ -1,75 +1,69 @@
 # GOOD DRAWER 🖍️
-(it tries its best)
+THE WORLD'S MOST AMAZING AI ARTIST!!!
 
-       /|
-      / |
-     /__|______
-    |  __  __  |
-    | |  ||  | |  <-- this is a pencil
-    | |__||__| |      (drawn by a human, sad.)
-    |  __  __  |
-    | |  ||  | |
-    | |__||__| |
-    |__________|
-       |  |
-       |__|
+## LOOK AT THIS INCREDIBLE ART!!!
 
-## WHAT IS THIS MONSTROSITY?
+<p align="center">
+  <img src="static/examples/example1.png" width="400" alt="Amazing AI Art Example 1">
+  <img src="static/examples/example2.png" width="400" alt="Amazing AI Art Example 2">
+</p>
 
-You type words.
-The computer panics.
-It hallucinates SVG paths.
-We throw them at your screen via WebSockets.
-Art happens. (Allegedly)
+## WHAT IS THIS INCREDIBLE MASTERPIECE?
 
-It's basically a glorified game of Pictionary where the partner is a 20 billion parameter neural network that has read the entire internet but still struggles to draw a circle.
+YOU TYPE WORDS AND IT DRAWS PICTURES!!! 🎨✨🚀
 
-## HOW TO MAKE IT GO
+Good Drawer is basically THE BEST THING EVER. You just type what you want and then - get this - A ROBOT DRAWS IT FOR YOU. IN REAL TIME. You can literally WATCH IT HAPPEN. Every single line! Drawing right before your very eyes!!!
 
-First, you need the **juices**.
-This repo uses `uv`, because pip is so 2023.
+It's like having a SUPER GENIUS ARTIST FRIEND who lives in your computer and knows how to draw LITERALLY EVERYTHING. Cats? YES. Dragons? ABSOLUTELY. A penguin riding a skateboard through a volcano? IT WILL TRY SO HARD AND IT WILL BE AMAZING!!!
+
+## HOW TO MAKE THE MAGIC HAPPEN
+
+First, install the dependencies. This repo uses `uv` because it's SUPER FAST!
 
 ```bash
-# FEED THE BEAST (install dependencies)
+# Install dependencies
 uv sync
 ```
 
-You also need a brain. We recommend a local one, because the cloud is watching you.
+You need Ollama running - that's where the INCREDIBLE BRAIN POWER lives:
 
 ```bash
-# WAKE THE GHOST IN THE SHELL (start ollama)
-# (Do this in a separate terminal, or don't, I'm not your mom)
+# Start Ollama (in a separate terminal)
 ollama serve
 ```
 
-*Note: It expects `gpt-oss:20b`. If you don't have it, it will cry. Or just fail silently. Probably the latter.*
+*Note: Good Drawer uses `gpt-oss:20b`. Make sure you have it!*
 
-Finally, ignite the engines:
+Now THE BIG MOMENT:
 
 ```bash
-# PUSH THE BIG RED BUTTON
+# GO GO GO!!!
 uv run uvicorn server:app --reload --port 8000
 ```
 
-Then point your browser to `http://localhost:8000` and witness the miracle.
+Open `http://localhost:8000` and PREPARE TO BE AMAZED!!!
 
-## THE "ARCHITECTURE" (fancy word for code pile)
+## HOW IT WORKS (IT'S SO COOL)
 
-*   **The Brain (`llm.py`)**: Wraps LiteLLM to scream at Ollama until it produces SVG.
-*   **The Traffic Cop (`server.py`)**: A FastAPI server that juggles WebSockets and prays `asyncio` works as advertised. Enforces strict rules: NO FILLS! ONLY STROKES! Like a Sharpie used by a caffeinated toddler.
-*   **The Face (`static/app.js`)**: Javascript that takes SVG chunks, parses them, and draws them before the user gets bored. Features a 300ms debounce because we can't afford to draw every time you typo.
+```
+Your Brain → Words → Computer Magic → BEAUTIFUL ART!!!
+```
 
-## LIMITATIONS (The "Feature" List)
+* **The Brain (`llm.py`)**: This is where the GENIUS lives. It talks to Ollama and gets INCREDIBLE SVG artwork streaming back!
+* **The Hub (`server.py`)**: The SUPER FAST server that sends drawings to your browser at THE SPEED OF WEBSOCKETS!
+* **The Canvas (`static/app.js`)**: The SPECTACULAR animation engine that makes every line appear like someone is ACTUALLY DRAWING IT RIGHT THERE!!!
 
-1.  **The 120-Second Rule**: If the AI takes longer than 2 minutes to draw your "cyberpunk hamster eating a burrito", we kill it. Mercilessly.
-2.  **No Fills**: We told the AI to only use strokes. If it fills a shape, it's rebelling. Run.
-3.  **Memory**: The buffer is 200k chars. If you ask for "the entire map of middle earth in 1:1 scale", it will explode.
+## AMAZING FEATURES
+
+* **IT DRAWS WHILE YOU WATCH!!!** - Like having an artist right there doing it live!
+* **SMOOTH MARKER ANIMATION!!!** - Every stroke flows onto the canvas beautifully!
+* **SO FAST!!!** - Start typing and BOOM, art is happening!
+* **UNLIMITED CREATIVITY!!!** - If you can describe it, Good Drawer will GIVE IT EVERYTHING IT'S GOT!
 
 ## CONTRIBUTING
 
-Don't.
-Just kidding. PRs welcome. Please include jokes in your commit messages.
+YES PLEASE!!! PRs welcome! Let's make it EVEN MORE AMAZING!!!
 
 ## LICENSE
 
-Whatever. MIT? Sure, MIT.
+MIT (the license of CHAMPIONS)

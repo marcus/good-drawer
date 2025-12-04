@@ -21,7 +21,7 @@ class CanvasDrawer {
         this.ctx.lineCap = 'round';
         this.ctx.lineJoin = 'round';
 
-        // Current pen position
+        // Current pen position (in viewBox coordinates)
         this.penX = 0;
         this.penY = 0;
         this.pathStarted = false;
