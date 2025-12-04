@@ -32,7 +32,17 @@ You need Ollama running - that's where the INCREDIBLE BRAIN POWER lives:
 ollama serve
 ```
 
-*Note: Good Drawer uses `gpt-oss:20b`. Make sure you have it!*
+*Note: Good Drawer defaults to `gpt-oss:20b`. Make sure you have it!*
+
+### Cloud Models (Optional)
+
+Want EVEN MORE BRAIN POWER? Add OpenRouter for access to cloud models!
+
+```bash
+export OPENROUTER_API_KEY="your-key-here"
+```
+
+Cloud models show ☁️, local models show 💻. Mix and match!
 
 Now THE BIG MOMENT:
 

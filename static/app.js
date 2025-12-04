@@ -67,14 +67,18 @@ class DrawingApp {
 
             models.forEach(m => {
                 const opt = document.createElement('option');
-                opt.value = m;
-                opt.textContent = m.split(':')[0];
+                opt.value = JSON.stringify({ name: m.name, provider: m.provider });
+                const icon = m.provider === 'ollama' ? '💻' : '☁️';
+                const displayName = m.name.split('/').pop().split(':')[0];
+                opt.textContent = `${icon} ${displayName}`;
                 this.modelSelect.appendChild(opt);
             });
 
-            // Select gpt-oss:20b by default if available
-            const preferred = models.find(m => m.includes('gpt-oss'));
-            if (preferred) this.modelSelect.value = preferred;
+            // Select gpt-oss by default if available
+            const preferred = models.find(m => m.name.includes('gpt-oss'));
+            if (preferred) {
+                this.modelSelect.value = JSON.stringify({ name: preferred.name, provider: preferred.provider });
+            }
         } catch (e) {
             console.warn('Failed to fetch models:', e);
             this.modelSelect.innerHTML = '<option value="">Error</option>';
@@ -296,11 +300,19 @@ class DrawingApp {
         this.currentId = crypto.randomUUID();
 
         if (this.ws?.readyState === WebSocket.OPEN) {
+            let model = 'gpt-oss:20b';
+            let provider = 'ollama';
+            try {
+                const selected = JSON.parse(this.modelSelect.value);
+                model = selected.name;
+                provider = selected.provider;
+            } catch (e) {}
             this.ws.send(JSON.stringify({
                 type: 'draw',
                 prompt: prompt,
                 id: this.currentId,
-                model: this.modelSelect.value || 'gpt-oss:20b'
+                model: model,
+                provider: provider
             }));
         } else {
             this.setStatus('Not connected', true);

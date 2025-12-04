@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import os
 import re
 import time
 import uuid
@@ -15,6 +16,7 @@ from fastapi.responses import FileResponse
 from llm import LLMClient
 
 OLLAMA_BASE = "http://localhost:11434"
+OPENROUTER_MODELS = ["google/gemini-3-pro-preview", "google/gemini-2.0-flash-001"]
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
@@ -52,7 +54,7 @@ def sanitize_prompt(prompt: str) -> str:
     return prompt
 
 
-async def handle_draw(websocket: WebSocket, prompt: str, req_id: str, model: str, cancel_event: asyncio.Event):
+async def handle_draw(websocket: WebSocket, prompt: str, req_id: str, model: str, provider: str, cancel_event: asyncio.Event):
     """Handle a single draw request with streaming."""
     start_time = time.monotonic()
     first_chunk_time = None
@@ -64,33 +66,43 @@ async def handle_draw(websocket: WebSocket, prompt: str, req_id: str, model: str
         {"role": "user", "content": f"Draw: {prompt}"},
     ]
 
-    llm_client = LLMClient(model=f"ollama/{model}")
+    llm_client = LLMClient(model=model, provider=provider)
     await websocket.send_json({"type": "start", "id": req_id})
+
+    async def safe_send(msg):
+        try:
+            await websocket.send_json(msg)
+        except Exception:
+            pass  # Client disconnected
 
     try:
         chunks_sent = 0
         async for chunk in llm_client.stream_completion(messages):
             if cancel_event.is_set():
                 cancelled = True
-                await websocket.send_json({"type": "cancelled", "id": req_id})
+                await safe_send({"type": "cancelled", "id": req_id})
                 log.info(f"req={req_id[:8]} cancelled after {chunks_sent} chunks")
                 return
 
             if first_chunk_time is None:
                 first_chunk_time = time.monotonic() - start_time
 
-            await websocket.send_json({"type": "chunk", "id": req_id, "data": chunk})
-            chunks_sent += 1
+            try:
+                await websocket.send_json({"type": "chunk", "id": req_id, "data": chunk})
+                chunks_sent += 1
+            except Exception:
+                log.info(f"req={req_id[:8]} client disconnected after {chunks_sent} chunks")
+                return
 
         log.info(f"req={req_id[:8]} stream done, sent {chunks_sent} chunks")
-        await websocket.send_json({"type": "done", "id": req_id})
+        await safe_send({"type": "done", "id": req_id})
 
     except ConnectionError as e:
         error_reason = "ollama_unavailable"
-        await websocket.send_json({"type": "error", "id": req_id, "message": "Cannot connect to drawing engine. Is Ollama running?"})
+        await safe_send({"type": "error", "id": req_id, "message": "Cannot connect to drawing engine. Is Ollama running?"})
     except Exception as e:
         error_reason = str(e)
-        await websocket.send_json({"type": "error", "id": req_id, "message": "An error occurred."})
+        await safe_send({"type": "error", "id": req_id, "message": "An error occurred."})
         log.exception(f"req={req_id[:8]} error")
     finally:
         total_duration = time.monotonic() - start_time
@@ -124,6 +136,7 @@ async def websocket_draw(websocket: WebSocket):
                 prompt = sanitize_prompt(data.get("prompt", ""))
                 req_id = data.get("id", str(uuid.uuid4()))
                 model = data.get("model", "gpt-oss:20b")
+                provider = data.get("provider", "ollama")
 
                 if not prompt:
                     await websocket.send_json({"type": "error", "id": req_id, "message": "Prompt cannot be empty."})
@@ -140,7 +153,7 @@ async def websocket_draw(websocket: WebSocket):
                     cancel_event.clear()
 
                 # Start new task
-                current_task = asyncio.create_task(handle_draw(websocket, prompt, req_id, model, cancel_event))
+                current_task = asyncio.create_task(handle_draw(websocket, prompt, req_id, model, provider, cancel_event))
 
     except WebSocketDisconnect:
         log.info("ws disconnect")
@@ -158,16 +171,26 @@ async def websocket_draw(websocket: WebSocket):
 
 @app.get("/api/models")
 async def list_models():
-    """Fetch available models from Ollama."""
+    """Fetch available models from Ollama and OpenRouter."""
+    models = []
+
+    # Fetch Ollama models
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.get(f"{OLLAMA_BASE}/api/tags", timeout=5.0)
             resp.raise_for_status()
             data = resp.json()
-            return {"models": [m["name"] for m in data.get("models", [])]}
+            for m in data.get("models", []):
+                models.append({"name": m["name"], "provider": "ollama"})
     except Exception as e:
-        log.warning(f"Failed to fetch models: {e}")
-        return {"models": [], "error": "Could not fetch models"}
+        log.warning(f"Failed to fetch Ollama models: {e}")
+
+    # Add OpenRouter models if API key exists
+    if os.environ.get("OPENROUTER_API_KEY"):
+        for m in OPENROUTER_MODELS:
+            models.append({"name": m, "provider": "openrouter"})
+
+    return {"models": models}
 
 
 # Static files
