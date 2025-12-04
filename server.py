@@ -7,11 +7,14 @@ import time
 import uuid
 from pathlib import Path
 
+import httpx
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from llm import llm_client
+from llm import LLMClient
+
+OLLAMA_BASE = "http://localhost:11434"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
@@ -49,7 +52,7 @@ def sanitize_prompt(prompt: str) -> str:
     return prompt
 
 
-async def handle_draw(websocket: WebSocket, prompt: str, req_id: str, cancel_event: asyncio.Event):
+async def handle_draw(websocket: WebSocket, prompt: str, req_id: str, model: str, cancel_event: asyncio.Event):
     """Handle a single draw request with streaming."""
     start_time = time.monotonic()
     first_chunk_time = None
@@ -61,6 +64,7 @@ async def handle_draw(websocket: WebSocket, prompt: str, req_id: str, cancel_eve
         {"role": "user", "content": f"Draw: {prompt}"},
     ]
 
+    llm_client = LLMClient(model=f"ollama/{model}")
     await websocket.send_json({"type": "start", "id": req_id})
 
     try:
@@ -119,6 +123,7 @@ async def websocket_draw(websocket: WebSocket):
             elif msg_type == "draw":
                 prompt = sanitize_prompt(data.get("prompt", ""))
                 req_id = data.get("id", str(uuid.uuid4()))
+                model = data.get("model", "gpt-oss:20b")
 
                 if not prompt:
                     await websocket.send_json({"type": "error", "id": req_id, "message": "Prompt cannot be empty."})
@@ -135,7 +140,7 @@ async def websocket_draw(websocket: WebSocket):
                     cancel_event.clear()
 
                 # Start new task
-                current_task = asyncio.create_task(handle_draw(websocket, prompt, req_id, cancel_event))
+                current_task = asyncio.create_task(handle_draw(websocket, prompt, req_id, model, cancel_event))
 
     except WebSocketDisconnect:
         log.info("ws disconnect")
@@ -149,6 +154,20 @@ async def websocket_draw(websocket: WebSocket):
                 await current_task
             except asyncio.CancelledError:
                 pass
+
+
+@app.get("/api/models")
+async def list_models():
+    """Fetch available models from Ollama."""
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(f"{OLLAMA_BASE}/api/tags", timeout=5.0)
+            resp.raise_for_status()
+            data = resp.json()
+            return {"models": [m["name"] for m in data.get("models", [])]}
+    except Exception as e:
+        log.warning(f"Failed to fetch models: {e}")
+        return {"models": [], "error": "Could not fetch models"}
 
 
 # Static files

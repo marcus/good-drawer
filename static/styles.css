@@ -75,10 +75,38 @@ html, body {
     max-width: min(80vh, 800px);
 }
 
+.input-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
 .input-container {
     position: relative;
     display: flex;
     align-items: center;
+    flex: 1;
+}
+
+.model-select {
+    padding: 0.75rem;
+    font-size: 0.875rem;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    background: var(--canvas-bg);
+    color: var(--text);
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    max-width: 140px;
+}
+
+.model-select:focus {
+    border-color: var(--pulse);
+}
+
+.model-select:hover {
+    border-color: var(--placeholder);
 }
 
 #promptInput {
@@ -145,6 +173,17 @@ html, body {
     }
 
     #canvas {
+        border-radius: 8px;
+    }
+
+    .input-row {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .model-select {
+        width: 100%;
+        max-width: none;
         border-radius: 8px;
     }
 

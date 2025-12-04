@@ -12,6 +12,7 @@ class DrawingApp {
         this.input = document.getElementById('promptInput');
         this.clearBtn = document.getElementById('clearBtn');
         this.status = document.getElementById('status');
+        this.modelSelect = document.getElementById('modelSelect');
 
         this.ws = null;
         this.currentId = null;
@@ -48,7 +49,36 @@ class DrawingApp {
         this.resizeCanvas();
         window.addEventListener('resize', () => this.resizeCanvas());
 
+        this.fetchModels();
         this.connect();
+    }
+
+    async fetchModels() {
+        try {
+            const resp = await fetch('/api/models');
+            const data = await resp.json();
+            const models = data.models || [];
+
+            this.modelSelect.innerHTML = '';
+            if (models.length === 0) {
+                this.modelSelect.innerHTML = '<option value="">No models</option>';
+                return;
+            }
+
+            models.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m;
+                opt.textContent = m.split(':')[0];
+                this.modelSelect.appendChild(opt);
+            });
+
+            // Select gpt-oss:20b by default if available
+            const preferred = models.find(m => m.includes('gpt-oss'));
+            if (preferred) this.modelSelect.value = preferred;
+        } catch (e) {
+            console.warn('Failed to fetch models:', e);
+            this.modelSelect.innerHTML = '<option value="">Error</option>';
+        }
     }
 
     resizeCanvas() {
@@ -269,7 +299,8 @@ class DrawingApp {
             this.ws.send(JSON.stringify({
                 type: 'draw',
                 prompt: prompt,
-                id: this.currentId
+                id: this.currentId,
+                model: this.modelSelect.value || 'gpt-oss:20b'
             }));
         } else {
             this.setStatus('Not connected', true);
