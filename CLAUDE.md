@@ -38,5 +38,5 @@ Browser (vanilla JS) ←WebSocket→ FastAPI ←LiteLLM→ Ollama (gpt-oss:20b)
 
 **Key Constraints:**
 - One active generation per WebSocket (new draw cancels existing)
-- Prompt max 512 chars; buffer max 200k chars
-- Timeouts: 30s start, 30s idle gap, 120s hard limit
+- Prompt max 512 chars
+- No timeouts - drawing runs until LLM completes or user starts new prompt

@@ -2,7 +2,6 @@
 
 const DEBOUNCE_MS = 300;
 const PING_INTERVAL_MS = 20000;
-const MAX_BUFFER_SIZE = 200000;
 const RECONNECT_DELAYS = [500, 2000, 5000, 10000];
 const DEBUG = new URLSearchParams(location.search).has('debug');
 
@@ -19,20 +18,22 @@ class DrawingApp {
         this.debounceTimer = null;
         this.pingTimer = null;
         this.reconnectAttempt = 0;
-        this.bufferSize = 0;
 
         // Canvas drawing system
         this.drawer = new CanvasDrawer(this.canvas);
         this.parser = new PathParser(
-            (segment) => this.drawer.addSegment(segment),
+            (segment) => {
+                this.startDrawing();
+                this.drawer.addSegment(segment);
+            },
             (warning) => this.logWarning(warning)
         );
 
         // Doodle loader for waiting state
         this.doodle = new DoodleLoader(this.doodleOverlay);
-        this.isLoading = false;
 
-        // Elapsed time tracking
+        // State: 'idle' | 'thinking' | 'generating' | 'drawing'
+        this.state = 'idle';
         this.startTime = null;
         this.elapsedTimer = null;
 
@@ -55,18 +56,30 @@ class DrawingApp {
     }
 
     startLoading() {
-        this.isLoading = true;
+        this.state = 'thinking';
         this.doodle.start();
         this.startTime = Date.now();
         this.updateElapsed();
         this.elapsedTimer = setInterval(() => this.updateElapsed(), 100);
     }
 
-    stopLoading() {
-        if (this.isLoading) {
-            this.isLoading = false;
+    startGenerating() {
+        if (this.state === 'thinking') {
+            this.state = 'generating';
             this.doodle.clear();
         }
+    }
+
+    startDrawing() {
+        if (this.state === 'thinking') {
+            this.doodle.clear();
+        }
+        this.state = 'drawing';
+    }
+
+    stopAll() {
+        this.state = 'idle';
+        this.doodle.clear();
         if (this.elapsedTimer) {
             clearInterval(this.elapsedTimer);
             this.elapsedTimer = null;
@@ -76,7 +89,17 @@ class DrawingApp {
     updateElapsed() {
         if (!this.startTime) return;
         const elapsed = ((Date.now() - this.startTime) / 1000).toFixed(1);
-        this.setStatus(`Drawing... ${elapsed}s`);
+        switch (this.state) {
+            case 'thinking':
+                this.setStatus(`Thinking... ${elapsed}s`);
+                break;
+            case 'generating':
+                this.setStatus(`Generating... ${elapsed}s`);
+                break;
+            case 'drawing':
+                this.setStatus(`Drawing... ${elapsed}s`);
+                break;
+        }
     }
 
     connect() {
@@ -133,28 +156,21 @@ class DrawingApp {
                 break;
 
             case 'start':
-                this.bufferSize = 0;
                 this.parser.reset();
                 this.canvas.classList.add('streaming');
                 this.setStatus('');
                 break;
 
             case 'chunk':
-                this.stopLoading();
+                this.startGenerating();
                 console.log('[chunk]', msg.data);
-                this.bufferSize += msg.data.length;
-                if (this.bufferSize > MAX_BUFFER_SIZE) {
-                    this.setStatus('Drawing too complex', true);
-                    this.cancel();
-                    return;
-                }
-
                 // Feed chunk to parser - it will emit segments to drawer
+                // startDrawing() is called when first segment is emitted
                 this.parser.feed(msg.data);
                 break;
 
             case 'done':
-                this.stopLoading();
+                this.stopAll();
                 this.canvas.classList.remove('streaming');
                 this.setStatus('');
                 // Flush any remaining segments
@@ -162,13 +178,13 @@ class DrawingApp {
                 break;
 
             case 'cancelled':
-                this.stopLoading();
+                this.stopAll();
                 this.canvas.classList.remove('streaming');
                 this.setStatus('');
                 break;
 
             case 'error':
-                this.stopLoading();
+                this.stopAll();
                 this.canvas.classList.remove('streaming');
                 this.setStatus(msg.message, true);
                 setTimeout(() => {
@@ -227,7 +243,6 @@ class DrawingApp {
 
         // Send new request
         this.currentId = crypto.randomUUID();
-        this.bufferSize = 0;
 
         if (this.ws?.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify({
@@ -258,7 +273,7 @@ class DrawingApp {
     }
 
     clearCanvas() {
-        this.stopLoading();
+        this.stopAll();
         this.drawer.clear();
         this.parser.reset();
         this.canvas.classList.remove('streaming');
