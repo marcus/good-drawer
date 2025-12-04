@@ -142,7 +142,6 @@ class DrawingApp {
             case 'chunk':
                 this.stopLoading();
                 console.log('[chunk]', msg.data);
-
                 this.bufferSize += msg.data.length;
                 if (this.bufferSize > MAX_BUFFER_SIZE) {
                     this.setStatus('Drawing too complex', true);

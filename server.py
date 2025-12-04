@@ -57,44 +57,21 @@ async def handle_draw(websocket: WebSocket, prompt: str, req_id: str, cancel_eve
     await websocket.send_json({"type": "start", "id": req_id})
 
     try:
-        chunk_gen = llm_client.stream_completion(messages)
-        first_chunk_received = False
-
-        async def get_next_chunk():
-            return await chunk_gen.__anext__()
-
-        while True:
+        chunks_sent = 0
+        async for chunk in llm_client.stream_completion(messages):
             if cancel_event.is_set():
                 cancelled = True
                 await websocket.send_json({"type": "cancelled", "id": req_id})
-                log.info(f"req={req_id[:8]} cancelled")
+                log.info(f"req={req_id[:8]} cancelled after {chunks_sent} chunks")
                 return
 
-            elapsed = time.monotonic() - start_time
-            if elapsed > REQUEST_HARD_LIMIT:
-                error_reason = "timeout_hard"
-                await websocket.send_json({"type": "error", "id": req_id, "message": "Drawing took too long."})
-                return
+            if first_chunk_time is None:
+                first_chunk_time = time.monotonic() - start_time
 
-            timeout = START_CHUNK_DEADLINE if not first_chunk_received else IDLE_CHUNK_GAP
+            await websocket.send_json({"type": "chunk", "id": req_id, "data": chunk})
+            chunks_sent += 1
 
-            try:
-                chunk = await asyncio.wait_for(get_next_chunk(), timeout=timeout)
-                if not first_chunk_received:
-                    first_chunk_received = True
-                    first_chunk_time = time.monotonic() - start_time
-                await websocket.send_json({"type": "chunk", "id": req_id, "data": chunk})
-            except asyncio.TimeoutError:
-                if not first_chunk_received:
-                    error_reason = "timeout_start"
-                    await websocket.send_json({"type": "error", "id": req_id, "message": "Drawing took too long to start. Try again."})
-                else:
-                    error_reason = "timeout_idle"
-                    await websocket.send_json({"type": "error", "id": req_id, "message": "Drawing stalled. Try a simpler prompt."})
-                return
-            except StopAsyncIteration:
-                break
-
+        log.info(f"req={req_id[:8]} stream done, sent {chunks_sent} chunks")
         await websocket.send_json({"type": "done", "id": req_id})
 
     except ConnectionError as e:

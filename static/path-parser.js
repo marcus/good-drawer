@@ -6,11 +6,28 @@ class PathParser {
         this.onWarning = onWarning;   // (warning) => void
         this.buffer = '';
         this.currentStyle = { stroke: '#000', strokeWidth: 3 };
+        this.svgStarted = false;
     }
 
     // Feed a chunk of SVG text
     feed(chunk) {
         this.buffer += chunk;
+
+        // Wait for SVG to start - skip any preamble/thinking
+        if (!this.svgStarted) {
+            const svgStart = this.buffer.indexOf('<svg');
+            if (svgStart === -1) {
+                // No SVG yet, keep only last 100 chars in case <svg spans chunks
+                if (this.buffer.length > 100) {
+                    this.buffer = this.buffer.slice(-100);
+                }
+                return;
+            }
+            // Found SVG start, discard everything before it
+            this.buffer = this.buffer.slice(svgStart);
+            this.svgStarted = true;
+        }
+
         this.extractPaths();
     }
 
@@ -18,6 +35,7 @@ class PathParser {
     reset() {
         this.buffer = '';
         this.currentStyle = { stroke: '#000', strokeWidth: 3 };
+        this.svgStarted = false;
     }
 
     // Extract and parse complete path elements from buffer
@@ -29,9 +47,7 @@ class PathParser {
         let lastIndex = 0;
 
         while ((match = pathRegex.exec(this.buffer)) !== null) {
-            const attrs = match[1];
-            console.log('[PathParser] found path:', attrs.slice(0, 100));
-            this.parsePath(attrs);
+            this.parsePath(match[1]);
             lastIndex = pathRegex.lastIndex;
         }
 
