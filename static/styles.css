@@ -38,6 +38,7 @@ html, body {
     justify-content: center;
     min-height: 0;
     padding: 1rem;
+    position: relative;
 }
 
 #canvas {
@@ -48,15 +49,19 @@ html, body {
     background: var(--canvas-bg);
     border-radius: 12px;
     box-shadow: 0 4px 20px var(--shadow);
-    transition: opacity 0.2s ease;
+}
+
+#doodleOverlay {
+    position: absolute;
+    width: 100%;
+    max-width: 500px;
+    max-height: 100%;
+    aspect-ratio: 1;
+    pointer-events: none;
 }
 
 #canvas.streaming {
     animation: pulse 1.5s ease-in-out infinite;
-}
-
-#canvas.fading {
-    opacity: 0;
 }
 
 @keyframes pulse {

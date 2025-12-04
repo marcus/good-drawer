@@ -1,29 +1,40 @@
-// Good Drawer - WebSocket client for AI drawing
+// Good Drawer - WebSocket client for AI drawing with streaming canvas rendering
 
 const DEBOUNCE_MS = 300;
 const PING_INTERVAL_MS = 20000;
 const MAX_BUFFER_SIZE = 200000;
-const RENDER_THROTTLE_MS = 33; // ~30fps
 const RECONNECT_DELAYS = [500, 2000, 5000, 10000];
+const DEBUG = new URLSearchParams(location.search).has('debug');
 
 class DrawingApp {
     constructor() {
         this.canvas = document.getElementById('canvas');
+        this.doodleOverlay = document.getElementById('doodleOverlay');
         this.input = document.getElementById('promptInput');
         this.clearBtn = document.getElementById('clearBtn');
         this.status = document.getElementById('status');
 
         this.ws = null;
         this.currentId = null;
-        this.buffer = '';
-        this.lastValidSvg = '';
         this.debounceTimer = null;
         this.pingTimer = null;
         this.reconnectAttempt = 0;
-        this.lastRenderTime = 0;
-        this.renderPending = false;
-        this.doodle = new DoodleLoader(this.canvas);
+        this.bufferSize = 0;
+
+        // Canvas drawing system
+        this.drawer = new CanvasDrawer(this.canvas);
+        this.parser = new PathParser(
+            (segment) => this.drawer.addSegment(segment),
+            (warning) => this.logWarning(warning)
+        );
+
+        // Doodle loader for waiting state
+        this.doodle = new DoodleLoader(this.doodleOverlay);
         this.isLoading = false;
+
+        // Elapsed time tracking
+        this.startTime = null;
+        this.elapsedTimer = null;
 
         this.init();
     }
@@ -36,9 +47,19 @@ class DrawingApp {
         this.connect();
     }
 
+    logWarning(warning) {
+        console.warn('[PathParser]', warning.type, warning.details);
+        if (DEBUG) {
+            console.debug('Buffer tail:', warning.buffer);
+        }
+    }
+
     startLoading() {
         this.isLoading = true;
         this.doodle.start();
+        this.startTime = Date.now();
+        this.updateElapsed();
+        this.elapsedTimer = setInterval(() => this.updateElapsed(), 100);
     }
 
     stopLoading() {
@@ -46,6 +67,16 @@ class DrawingApp {
             this.isLoading = false;
             this.doodle.clear();
         }
+        if (this.elapsedTimer) {
+            clearInterval(this.elapsedTimer);
+            this.elapsedTimer = null;
+        }
+    }
+
+    updateElapsed() {
+        if (!this.startTime) return;
+        const elapsed = ((Date.now() - this.startTime) / 1000).toFixed(1);
+        this.setStatus(`Drawing... ${elapsed}s`);
     }
 
     connect() {
@@ -102,26 +133,32 @@ class DrawingApp {
                 break;
 
             case 'start':
-                this.buffer = '';
+                this.bufferSize = 0;
+                this.parser.reset();
                 this.canvas.classList.add('streaming');
                 this.setStatus('');
                 break;
 
             case 'chunk':
                 this.stopLoading();
-                if (this.buffer.length + msg.data.length > MAX_BUFFER_SIZE) {
+                console.log('[chunk]', msg.data);
+
+                this.bufferSize += msg.data.length;
+                if (this.bufferSize > MAX_BUFFER_SIZE) {
                     this.setStatus('Drawing too complex', true);
                     this.cancel();
                     return;
                 }
-                this.buffer += msg.data;
-                this.scheduleRender();
+
+                // Feed chunk to parser - it will emit segments to drawer
+                this.parser.feed(msg.data);
                 break;
 
             case 'done':
                 this.stopLoading();
                 this.canvas.classList.remove('streaming');
-                this.render(true);
+                // Flush any remaining segments
+                this.drawer.flush();
                 break;
 
             case 'cancelled':
@@ -140,57 +177,6 @@ class DrawingApp {
                 }, 3000);
                 break;
         }
-    }
-
-    scheduleRender() {
-        if (this.renderPending) return;
-
-        const now = Date.now();
-        const elapsed = now - this.lastRenderTime;
-
-        if (elapsed >= RENDER_THROTTLE_MS) {
-            this.render();
-        } else {
-            this.renderPending = true;
-            setTimeout(() => {
-                this.renderPending = false;
-                this.render();
-            }, RENDER_THROTTLE_MS - elapsed);
-        }
-    }
-
-    render(final = false) {
-        this.lastRenderTime = Date.now();
-
-        let svgContent = this.buffer;
-
-        // Wrap incomplete SVG
-        if (!svgContent.includes('<svg')) {
-            svgContent = `<svg viewBox="0 0 400 400">${svgContent}</svg>`;
-        } else if (!svgContent.includes('</svg>')) {
-            svgContent = svgContent + '</svg>';
-        }
-
-        // Parse and validate
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(svgContent, 'image/svg+xml');
-        const errorNode = doc.querySelector('parsererror');
-
-        if (errorNode) {
-            if (this.lastValidSvg && final) {
-                this.setStatus('Drawing incomplete');
-            }
-            return;
-        }
-
-        // Valid SVG - update canvas
-        const svgEl = doc.documentElement;
-        if (!svgEl.getAttribute('viewBox')) {
-            svgEl.setAttribute('viewBox', '0 0 400 400');
-        }
-
-        this.canvas.innerHTML = svgEl.innerHTML;
-        this.lastValidSvg = this.buffer;
     }
 
     onInput() {
@@ -233,18 +219,14 @@ class DrawingApp {
         // Cancel current request
         this.cancel();
 
-        // Fade, clear, and start loading animation
-        this.canvas.classList.add('fading');
-        setTimeout(() => {
-            this.canvas.innerHTML = '';
-            this.canvas.classList.remove('fading');
-            this.startLoading();
-        }, 200);
+        // Clear canvas and start loading animation
+        this.drawer.clear();
+        this.parser.reset();
+        this.startLoading();
 
         // Send new request
         this.currentId = crypto.randomUUID();
-        this.buffer = '';
-        this.lastValidSvg = '';
+        this.bufferSize = 0;
 
         if (this.ws?.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify({
@@ -276,14 +258,9 @@ class DrawingApp {
 
     clearCanvas() {
         this.stopLoading();
-        this.canvas.classList.add('fading');
-        setTimeout(() => {
-            this.canvas.innerHTML = '';
-            this.canvas.classList.remove('fading');
-            this.canvas.classList.remove('streaming');
-        }, 200);
-        this.buffer = '';
-        this.lastValidSvg = '';
+        this.drawer.clear();
+        this.parser.reset();
+        this.canvas.classList.remove('streaming');
         this.currentId = null;
     }
 

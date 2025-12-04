@@ -22,12 +22,16 @@ SYSTEM_PROMPT = """You are an SVG artist. Output ONLY SVG code.
 - Begin with <svg> and end with </svg>
 - Use viewBox="0 0 400 400"
 - No markdown, no narration
-- Prefer <path> and <g>; cohesive colors; simple, expressive forms"""
+- Use ONLY <path> elements - NO circles, rectangles, polygons, or other shapes
+- Draw like a pen sketch: continuous strokes with M, L, C commands
+- stroke="#000" stroke-width="3" fill="none"
+- Do NOT over-simplify - add detail, texture, and expressiveness
+- Draw the actual form, not geometric approximations"""
 
-# Timeouts (seconds)
-START_CHUNK_DEADLINE = 30.0
-IDLE_CHUNK_GAP = 30.0
-REQUEST_HARD_LIMIT = 120.0
+# Timeouts (seconds) - generous for local LLMs
+START_CHUNK_DEADLINE = 60.0
+IDLE_CHUNK_GAP = 60.0
+REQUEST_HARD_LIMIT = 300.0
 MAX_PROMPT_LEN = 512
 
 
