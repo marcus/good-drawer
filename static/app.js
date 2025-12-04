@@ -156,6 +156,7 @@ class DrawingApp {
             case 'done':
                 this.stopLoading();
                 this.canvas.classList.remove('streaming');
+                this.setStatus('');
                 // Flush any remaining segments
                 this.drawer.flush();
                 break;
@@ -163,6 +164,7 @@ class DrawingApp {
             case 'cancelled':
                 this.stopLoading();
                 this.canvas.classList.remove('streaming');
+                this.setStatus('');
                 break;
 
             case 'error':
