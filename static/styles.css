@@ -1,0 +1,160 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg: #f5f5f5;
+    --canvas-bg: #ffffff;
+    --shadow: rgba(0, 0, 0, 0.1);
+    --border: #e0e0e0;
+    --text: #333;
+    --placeholder: #999;
+    --error: #d32f2f;
+    --pulse: #2196f3;
+}
+
+html, body {
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.canvas-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    padding: 1rem;
+}
+
+#canvas {
+    width: 100%;
+    max-width: 500px;
+    max-height: 100%;
+    aspect-ratio: 1;
+    background: var(--canvas-bg);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px var(--shadow);
+    transition: opacity 0.2s ease;
+}
+
+#canvas.streaming {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+#canvas.fading {
+    opacity: 0;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 0 4px 20px var(--shadow);
+    }
+    50% {
+        box-shadow: 0 4px 20px var(--pulse), 0 0 0 3px var(--pulse);
+    }
+}
+
+.input-wrapper {
+    padding: 1rem 0;
+}
+
+.input-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+#promptInput {
+    width: 100%;
+    padding: 1rem 3rem 1rem 1rem;
+    font-size: 1rem;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    background: var(--canvas-bg);
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+#promptInput:focus {
+    border-color: var(--pulse);
+}
+
+#promptInput::placeholder {
+    color: var(--placeholder);
+}
+
+.clear-btn {
+    position: absolute;
+    right: 0.5rem;
+    width: 2rem;
+    height: 2rem;
+    border: none;
+    background: transparent;
+    font-size: 1.5rem;
+    color: var(--placeholder);
+    cursor: pointer;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s, background 0.2s;
+}
+
+.clear-btn:hover,
+.clear-btn:focus {
+    color: var(--text);
+    background: var(--border);
+}
+
+.status {
+    margin-top: 0.5rem;
+    min-height: 1.5rem;
+    font-size: 0.875rem;
+    color: var(--placeholder);
+    text-align: center;
+}
+
+.status.error {
+    color: var(--error);
+}
+
+@media (max-width: 600px) {
+    .container {
+        padding: 0.5rem;
+    }
+
+    .canvas-wrapper {
+        padding: 0.5rem;
+    }
+
+    #canvas {
+        max-width: 100%;
+        border-radius: 8px;
+    }
+
+    #promptInput {
+        padding: 0.875rem 2.5rem 0.875rem 0.875rem;
+        font-size: 1rem;
+        border-radius: 8px;
+    }
+
+    .clear-btn {
+        width: 1.75rem;
+        height: 1.75rem;
+        font-size: 1.25rem;
+    }
+}

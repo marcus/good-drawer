@@ -1,0 +1,11 @@
+[project]
+name = "good-drawer"
+version = "0.1.0"
+description = "Real-time AI drawing with streaming SVG"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "websockets>=12.0",
+    "litellm>=1.79.3",
+]

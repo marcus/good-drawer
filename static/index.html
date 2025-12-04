@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Good Drawer</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <main class="container">
+        <div class="canvas-wrapper" id="canvasWrapper">
+            <svg id="canvas" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet">
+            </svg>
+        </div>
+        <div class="input-wrapper">
+            <div class="input-container">
+                <input
+                    type="text"
+                    id="promptInput"
+                    placeholder="Describe what to draw..."
+                    autocomplete="off"
+                    autofocus
+                    aria-label="Drawing prompt"
+                >
+                <button id="clearBtn" class="clear-btn" aria-label="Clear input" style="display: none;">×</button>
+            </div>
+            <div id="status" class="status" aria-live="polite"></div>
+        </div>
+    </main>
+    <script src="/static/doodle.js"></script>
+    <script src="/static/app.js"></script>
+</body>
+</html>
